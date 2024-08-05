@@ -1,0 +1,18 @@
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Extracted Text</title>
+    <link rel="stylesheet" href="{% static 'extractor/styles.css' %}">
+    <script src="{% static 'extractor/scripts.js' %}"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Extracted Text</h1>
+        <textarea id="extractedText">{{ image_upload.extracted_text }}</textarea>
+        <button onclick="copyText()">Copy Text</button>
+        <div id="alert" class="alert" style="display: none;">Copied successfully!</div>
+        <a href="{% url 'upload_image' %}">Upload another image</a>
+    </div>
+</body>
+</html>

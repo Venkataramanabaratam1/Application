@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Text Extractor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <style>
+        /* External styles */
+        .bg-light-gray {
+            background-color: #f7fafc; /* Light gray background */
+        }
+        .bg-dark-gray {
+            background-color: #2d3748; /* Dark gray background */
+        }
+        .bg-light-blue {
+            background-color: #ebf8ff; /* Light blue background */
+        }
+        .bg-dark-blue {
+            background-color: #2b6cb0; /* Dark blue background */
+        }
+        .text-dark-gray {
+            color: #2d3748; /* Dark gray text */
+        }
+        .text-light-gray {
+            color: #cbd5e0; /* Light gray text */
+        }
+        .shadow-lg {
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); /* Larger shadow for better emphasis */
+        }
+        .centered-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh; /* Full viewport height */
+        }
+    </style>
+</head>
+<body class="bg-light-gray dark:bg-dark-gray">
+    <div class="centered-container">
+        <div class="flex flex-col items-center p-6 bg-white dark:bg-dark-gray rounded-lg shadow-lg max-w-lg w-full">
+            <h2 class="mb-4 text-3xl font-bold text-dark-gray dark:text-light-gray">Text Extractor</h2>
+            <p class="mb-6 text-lg text-dark-gray dark:text-light-gray">Upload an image or paste from clipboard to extract text.</p>
+
+            <form id="uploadForm" method="post" enctype="multipart/form-data" class="w-full">
+                {% csrf_token %}
+                <input id="fileInput" name="image" type="file" accept="image/*" class="mb-4 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-light-blue file:text-dark-blue hover:file:bg-blue-100 dark:file:bg-dark-gray dark:file:text-white dark:hover:file:bg-gray-700">
+                <textarea id="clipboardInput" name="clipboard_text" rows="4" placeholder="Paste image URL or text here..." class="mb-4 w-full p-2 text-dark-gray border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-dark-gray dark:text-white dark:border-gray-600"></textarea>
+                <button id="extractButton" type="button" class="w-full px-5 py-2.5 text-white bg-dark-blue rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800">
+                    Extract Text
+                </button>
+            </form>
+
+            <div class="mt-6 w-full">
+                <h3 class="mb-2 text-xl font-semibold text-dark-gray dark:text-light-gray">Extracted Text:</h3>
+                <div id="extractedText" class="p-4 bg-white border border-gray-200 rounded-lg shadow-md dark:bg-dark-gray dark:border-gray-700">
+                    <!-- Extracted text will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.1/dist/tesseract.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('fileInput');
+            const clipboardInput = document.getElementById('clipboardInput');
+            const extractButton = document.getElementById('extractButton');
+            const extractedTextDiv = document.getElementById('extractedText');
+
+            extractButton.addEventListener('click', () => {
+                const file = fileInput.files[0];
+                const clipboardData = clipboardInput.value.trim();
+
+                if (file) {
+                    extractTextFromFile(file);
+                } else if (clipboardData) {
+                    extractTextFromClipboard(clipboardData);
+                } else {
+                    alert('Please upload an image or paste a URL/text.');
+                }
+            });
+
+            function extractTextFromFile(file) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const img = new Image();
+                    img.src = reader.result;
+                    img.onload = () => {
+                        Tesseract.recognize(
+                            img,
+                            'eng',
+                            { logger: (m) => console.log(m) }
+                        ).then(({ data: { text } }) => {
+                            displayExtractedText(text);
+                        });
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+
+            function extractTextFromClipboard(data) {
+                if (isValidURL(data)) {
+                    const img = new Image();
+                    img.src = data;
+                    img.crossOrigin = "Anonymous";
+                    img.onload = () => {
+                        Tesseract.recognize(
+                            img,
+                            'eng',
+                            { logger: (m) => console.log(m) }
+                        ).then(({ data: { text } }) => {
+                            displayExtractedText(text);
+                        });
+                    };
+                    img.onerror = () => {
+                        alert('Failed to load image from URL.');
+                    };
+                } else {
+                    displayExtractedText(data);
+                }
+            }
+
+            function isValidURL(string) {
+                try {
+                    new URL(string);
+                    return true;
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            function displayExtractedText(text) {
+                extractedTextDiv.textContent = text;
+
+                extractedTextDiv.addEventListener('click', () => {
+                    navigator.clipboard.writeText(text).then(() => {
+                        alert('Text copied successfully!');
+                    }).catch(err => {
+                        console.error('Failed to copy text: ', err);
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
